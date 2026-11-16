@@ -32,3 +32,26 @@
 @media (max-width:991px){.hzb-log{height:260px}}
 @media (prefers-reduced-motion:reduce){.hzb-msg,.hzb-typing i{animation:none}}
 .hzb-trap{position:absolute!important;left:-9999px;width:1px;height:1px;opacity:0}
+
+/* Floating mode (optional): fixed card, bottom right, header toggles it open/closed. */
+.hzb--float{position:fixed;right:16px;bottom:16px;width:360px;max-width:calc(100vw - 32px);z-index:99998;margin:0}
+.hzb--float .hzb-head{cursor:pointer}
+.hzb--float.hzb--collapsed .hzb-log,.hzb--float.hzb--collapsed .hzb-chips,.hzb--float.hzb--collapsed .hzb-form,.hzb--float.hzb--collapsed .hzb-note{display:none}
+
+/* Connect-calendar panel (works in any theme) */
+.hzb-panel{max-width:760px;font:inherit}
+.hzb-panel h2{font-size:20px;margin:0 0 10px}
+.hzb-block{background:#fff;border:1px solid #dce0e0;border-radius:6px;padding:18px 20px;margin:0 0 18px}
+.hzb-pick{margin:0 0 16px}
+.hzb-pick select{margin-left:8px;padding:6px 8px}
+.hzb-muted{color:#6b767e}
+.hzb-dot-on{color:#2e9e5b}.hzb-dot-off{color:#c9302c}
+.hzb-btn{display:inline-block;background:#00aeff;color:#fff!important;border:1px solid #00aeff;border-radius:6px;padding:9px 18px;text-decoration:none;font-weight:600;cursor:pointer}
+.hzb-btn:hover{background:#0097dd;border-color:#0097dd}
+.hzb-btn--ghost{background:#fff;color:#c9302c!important;border-color:#c9302c}
+.hzb-btn--ghost:hover{background:#fdecea}
+.hzb-alert{padding:11px 14px;border-radius:6px;margin:0 0 16px;border:1px solid}
+.hzb-alert--ok{background:#e8f6ee;border-color:#9fd5b5}.hzb-alert--info{background:#eaf4fb;border-color:#a9cfe8}
+.hzb-alert--warn{background:#fff7e0;border-color:#ecd48a}.hzb-alert--err{background:#fdecea;border-color:#f0a8a2}
+.hzb-table{overflow-x:auto}.hzb-table table{width:100%;border-collapse:collapse}
+.hzb-table th,.hzb-table td{text-align:left;padding:8px 10px;border-bottom:1px solid #e3e7ea;vertical-align:top}

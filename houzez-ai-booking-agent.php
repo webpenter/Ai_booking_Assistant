@@ -1,8 +1,11 @@
 <?php
 /**
- * Plugin Name: Houzez AI Viewing-Booking Agent
- * Description: Chat agent for Houzez listings that checks the agent's real Google Calendar and books viewings. Connects an agent's Google Calendar, chats with visitors, books/reschedules/cancels viewings.
- * Version:     0.4.0
+ * Plugin Name: AI Viewing-Booking Agent
+ * Plugin URI:  https://github.com/webpenter/Ai_booking_Assistant
+ * Description: AI chat assistant for any WordPress listing site (Houzez, WPResidence, RealHomes, Listeo, Homey or custom). Checks the owner's real Google Calendar and books, reschedules and cancels viewings, tours or appointments.
+ * Author:      WebPenter
+ * License:     MIT
+ * Version:     0.5.0
  * Requires PHP: 7.4
  * Text Domain: houzez-ai-booking
  */
@@ -10,11 +13,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'HZB_VERSION', '0.4.0' );
+define( 'HZB_VERSION', '0.5.0' );
 define( 'HZB_DIR', plugin_dir_path( __FILE__ ) );
 define( 'HZB_URL', plugin_dir_url( __FILE__ ) );
 
-foreach ( array( 'crypto', 'settings', 'slot-calculator', 'google-oauth', 'bookings', 'calendar', 'booking-service', 'groq', 'chat', 'front', 'dashboard', 'admin' ) as $f ) {
+foreach ( array( 'crypto', 'settings', 'slot-calculator', 'owner', 'listings', 'google-oauth', 'bookings', 'calendar', 'booking-service', 'groq', 'chat', 'front', 'dashboard', 'admin' ) as $f ) {
 	require_once HZB_DIR . 'includes/class-' . $f . '.php';
 }
 
@@ -34,6 +37,7 @@ add_action( 'init', function () { // After a plain file copy there is no activat
 	}
 }, 20 );
 add_action( 'rest_api_init', array( 'HZB_Google_OAuth', 'register_routes' ) );
+add_action( 'init', array( 'HZB_Owner', 'register_cpt' ) );
 add_action( 'rest_api_init', array( 'HZB_Chat', 'register_routes' ) );
 add_action( 'admin_menu', array( 'HZB_Admin', 'menu' ) );
 add_action( 'admin_init', array( 'HZB_Settings', 'register' ) );

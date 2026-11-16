@@ -105,16 +105,7 @@ class HZB_Chat {
 	 * Returns 0 when the widget should not be shown.
 	 */
 	public static function resolve_agent( $listing_id ) {
-		$ids = array_map( 'intval', (array) get_post_meta( $listing_id, 'fave_agents' ) );
-		if ( ! array_filter( $ids ) && get_post_meta( $listing_id, 'fave_agent_display_option', true ) === 'author_info' ) {
-			$ids[] = (int) get_user_meta( (int) get_post_field( 'post_author', $listing_id ), 'fave_author_agent_id', true ); // Listing shows its author's agent profile.
-		}
-		foreach ( $ids as $id ) {
-			if ( $id > 0 && get_post_type( $id ) === 'houzez_agent' && HZB_Google_OAuth::is_connected( $id ) ) {
-				return $id;
-			}
-		}
-		return 0;
+		return HZB_Listings::resolve( $listing_id );
 	}
 
 	/* ---------- availability for the prompt ---------- */
@@ -176,7 +167,9 @@ class HZB_Chat {
 
 	private static function system_prompt( array $st, $listing_id, DateTimeZone $tz, $slots_text ) {
 		$now = new DateTimeImmutable( 'now', $tz );
-		$p  = 'You are the viewing-booking assistant for ' . get_bloginfo( 'name' ) . ' on the listing "' . get_the_title( $listing_id ) . '" at ' . get_post_meta( $listing_id, 'fave_property_address', true ) . ".\n";
+		$addr = HZB_Listings::address( $listing_id );
+		$p  = 'You are the AI viewing assistant of ' . HZB_Owner::name( $st['agent_id'] ) . ', who looks after the listing "' . get_the_title( $listing_id ) . '"' . ( $addr ? ' at ' . $addr : '' ) . '. You are an AI, not the human; say so if asked.' . "\n";
+		$p .= 'Listing facts: ' . HZB_Listings::facts_text( $listing_id ) . ". Only state these facts; for anything else suggest asking the host or agent.\n";
 		$p .= 'Agent timezone: ' . $tz->getName() . '. Today is ' . $now->format( 'Y-m-d (l)' ) . ", current time " . $now->format( 'H:i' ) . ".\n\n";
 		if ( ! empty( $st['booking_token'] ) ) {
 			$b  = HZB_Bookings::by_token( $st['booking_token'] );
@@ -205,7 +198,7 @@ class HZB_Chat {
 		$listing_id = (int) $req->get_param( 'listing_id' );
 		$msg        = trim( wp_strip_all_tags( (string) $req->get_param( 'message' ) ) );
 		$msg        = mb_substr( $msg, 0, self::MAX_MSG );
-		if ( get_post_type( $listing_id ) !== 'property' || get_post_status( $listing_id ) !== 'publish' ) {
+		if ( ! HZB_Listings::is_listing( $listing_id ) ) {
 			return new WP_REST_Response( array( 'error' => 'Unknown listing.' ), 404 );
 		}
 		if ( self::looks_like_bot( $req, $msg ) ) {
@@ -246,6 +239,7 @@ class HZB_Chat {
 		if ( $msg !== '' ) {
 			$st['history'][] = array( 'role' => 'user', 'content' => $msg );
 		}
+		$reply           = HZB_Settings::t( $reply );
 		$st['history'][] = array( 'role' => 'assistant', 'content' => $reply );
 		$st['history']   = array_slice( $st['history'], -14 );
 		self::save_state( $sid, $st );
@@ -293,7 +287,7 @@ class HZB_Chat {
 	}
 
 	public static function intro( $agent_id ) {
-		return "Hi, I'm the virtual assistant of " . get_the_title( $agent_id ) . '. I can check the live calendar and book a viewing of this property for you. Would you prefer an in-person or a virtual viewing?';
+		return HZB_Settings::t( "Hi, I'm the virtual assistant of " . HZB_Owner::name( $agent_id ) . '. I can check the live calendar and book a viewing for you. Would you prefer an in-person or a virtual viewing?' );
 	}
 
 	private static function greeting( array $st, DateTimeZone $tz ) {

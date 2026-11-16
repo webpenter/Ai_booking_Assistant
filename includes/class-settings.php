@@ -19,6 +19,13 @@ class HZB_Settings {
 			'buffer'               => 15,  // Minutes between viewings.
 			'min_notice_hours'     => 4,
 			'max_days_ahead'       => 30,
+			'listing_types'       => array(), // Empty = detect from the active theme.
+			'placement'            => 'auto',  // auto | float | shortcode
+			'placement_selector'   => '',      // CSS selector of the element to insert the card into (optional).
+			'menu_selector'        => '',      // CSS selector of a dashboard menu <ul> to add a link to (optional).
+			'noun'                 => 'viewing', // Word used in chat and emails: viewing, tour, appointment, visit...
+			'agent_post_type'      => '',      // Custom agent/host post type (optional).
+			'agent_meta_key'       => '',      // Listing meta key that stores that agent's post ID (optional).
 			'visible_days'         => 14,  // How many days ahead the chat offers.
 			'max_active'           => 2,   // Upcoming viewings one email / one IP may hold.
 			'max_per_day'          => 8,   // Viewings the agent accepts through the chat per day.
@@ -74,6 +81,27 @@ class HZB_Settings {
 		$out['max_active']       = max( 1, min( 20, (int) ( $in['max_active'] ?? $d['max_active'] ) ) );
 		$out['max_per_day']      = max( 1, min( 100, (int) ( $in['max_per_day'] ?? $d['max_per_day'] ) ) );
 		$out['hold_minutes']     = max( 5, min( 120, (int) ( $in['hold_minutes'] ?? $d['hold_minutes'] ) ) );
+		$out['listing_types']     = isset( $in['listing_types'] ) && is_array( $in['listing_types'] ) ? array_values( array_filter( array_map( 'sanitize_key', $in['listing_types'] ), 'post_type_exists' ) ) : array();
+		$out['placement']         = isset( $in['placement'] ) && in_array( $in['placement'], array( 'auto', 'float', 'shortcode' ), true ) ? $in['placement'] : 'auto';
+		foreach ( array( 'placement_selector', 'menu_selector' ) as $k ) {
+			$out[ $k ] = isset( $in[ $k ] ) ? trim( preg_replace( '/[<>{}]/', '', sanitize_text_field( $in[ $k ] ) ) ) : '';
+		}
+		$noun        = isset( $in['noun'] ) ? strtolower( trim( sanitize_text_field( $in['noun'] ) ) ) : '';
+		$out['noun'] = ( $noun !== '' && preg_match( '/^[a-z ]{2,24}$/', $noun ) ) ? $noun : 'viewing';
+		$out['agent_post_type']   = isset( $in['agent_post_type'] ) ? sanitize_key( $in['agent_post_type'] ) : '';
+		$out['agent_meta_key']    = isset( $in['agent_meta_key'] ) ? preg_replace( '/[^A-Za-z0-9_\-]/', '', (string) $in['agent_meta_key'] ) : '';
 		return $out;
+	}
+
+	/** Replaces the word "viewing" in visitor-facing text with the site's chosen word (tour, appointment, ...). */
+	public static function t( $text ) {
+		$n = (string) self::get( 'noun' );
+		if ( $n === '' || $n === 'viewing' ) {
+			return $text;
+		}
+		return preg_replace_callback( '/\b(viewings?|Viewings?)\b/', function ( $m ) use ( $n ) {
+			$w = $n . ( substr( strtolower( $m[1] ), -1 ) === 's' ? 's' : '' );
+			return $m[1][0] === 'V' ? ucfirst( $w ) : $w;
+		}, $text );
 	}
 }

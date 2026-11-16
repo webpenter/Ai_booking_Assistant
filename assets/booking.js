@@ -149,20 +149,30 @@
 	add( 'bot', HZB.greeting );
 	setChips( HZB.chips );
 
-	/* ---------- placement: Houzez sidebar on desktop, under the description on mobile ---------- */
+	/* ---------- placement: theme sidebar when found, else under the content (or floating / shortcode) ---------- */
+	function visible( n ) { return n && n.offsetParent !== null; }
+
 	function place() {
 		root.hidden = false;
 		if ( HZB.inline ) { return; }
-		var sidebar = document.getElementById( 'sidebar' );
-		var desc = document.getElementById( 'property-description-wrap' );
-		var mobile = window.matchMedia( '(max-width: 991px)' ).matches;
-		if ( sidebar && ! mobile ) {
-			sidebar.insertBefore( root, sidebar.firstChild );
-		} else if ( desc ) {
-			desc.parentNode.insertBefore( root, desc.nextSibling );
-		} else if ( sidebar ) {
-			sidebar.insertBefore( root, sidebar.firstChild );
+		if ( HZB.placement === 'float' ) {
+			root.classList.add( 'hzb--float', 'hzb--collapsed' );
+			head.addEventListener( 'click', function () { root.classList.toggle( 'hzb--collapsed' ); } );
+			return;
 		}
+		var mobile = window.matchMedia( '(max-width: 991px)' ).matches;
+		var target = null, i, n;
+		if ( ! mobile ) {
+			for ( i = 0; i < ( HZB.selectors || [] ).length && ! target; i++ ) {
+				try { n = document.querySelector( HZB.selectors[i] ); } catch ( e ) { n = null; }
+				if ( n && n !== root && ! root.contains( n ) && visible( n ) ) { target = n; }
+			}
+		}
+		if ( target ) { target.insertBefore( root, target.firstChild ); return; }
+		// Mobile, or the theme has no sidebar: after the main content of the listing.
+		var host = document.querySelector( '#property-description-wrap, .entry-content, article .post-content, article, main' );
+		if ( host && host.parentNode ) { host.parentNode.insertBefore( root, host.nextSibling ); return; }
+		document.body.appendChild( root );
 	}
 	place();
 	if ( HZB.bookingToken ) { root.scrollIntoView( { block: 'center' } ); }

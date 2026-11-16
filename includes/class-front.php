@@ -15,10 +15,11 @@ class HZB_Front {
 		add_action( 'wp_footer', array( __CLASS__, 'auto_print' ) );
 		add_action( 'template_redirect', array( __CLASS__, 'confirm_page' ) );
 		add_shortcode( 'houzez_booking_button', array( __CLASS__, 'shortcode' ) );
+		add_shortcode( 'viewing_booking', array( __CLASS__, 'shortcode' ) );
 	}
 
 	public static function auto_print() {
-		if ( is_singular( 'property' ) ) {
+		if ( is_singular( HZB_Listings::types() ) && HZB_Settings::get( 'placement' ) !== 'shortcode' ) {
 			echo self::render( get_the_ID(), false );
 		}
 	}
@@ -79,7 +80,7 @@ class HZB_Front {
 	}
 
 	private static function render( $listing_id, $inline ) {
-		$agent_id = get_post_type( $listing_id ) === 'property' ? HZB_Chat::resolve_agent( $listing_id ) : 0;
+		$agent_id = HZB_Listings::is_listing( $listing_id ) ? HZB_Listings::resolve( $listing_id ) : 0;
 		if ( self::$printed || ! $agent_id ) {
 			return '';
 		}
@@ -95,11 +96,11 @@ class HZB_Front {
 			$tz       = HZB_Calendar::timezone( $agent_id );
 			$prefix   = ( isset( $_GET['hzb_msg'] ) && $_GET['hzb_msg'] === 'confirmed' ) ? "You're confirmed! A calendar invitation is on its way to your email. " : '';
 			$greeting = $prefix . 'Hi! I found your viewing on ' . HZB_Chat::format_ts( strtotime( $b->start_utc . ' UTC' ), $tz ) . ' (' . $tz->getName() . '). Would you like to reschedule or cancel it?';
-			$chips    = array( array( 'label' => 'Reschedule', 'text' => 'I want to reschedule' ), array( 'label' => 'Cancel viewing', 'text' => 'I want to cancel my viewing' ) );
+			$chips    = array( array( 'label' => 'Reschedule', 'text' => 'I want to reschedule' ), array( 'label' => HZB_Settings::t( 'Cancel viewing' ), 'text' => 'I want to cancel my viewing' ) );
 		} else {
 			$greeting = HZB_Chat::intro( $agent_id );
 			$chips    = array(
-				array( 'label' => 'In-person viewing', 'text' => 'I would like an in-person viewing' ),
+				array( 'label' => HZB_Settings::t( 'In-person viewing' ), 'text' => 'I would like an in-person viewing' ),
 				array( 'label' => 'Virtual tour', 'text' => 'I would like a virtual viewing' ),
 				array( 'label' => 'See free times', 'text' => 'What times are available this week?' ),
 			);
@@ -108,11 +109,13 @@ class HZB_Front {
 			'chatUrl'      => esc_url_raw( rest_url( 'houzez-booking/v1/chat' ) ),
 			'listingId'    => (int) $listing_id,
 			'bookingToken' => $managing ? $tok : '',
-			'agentName'    => get_the_title( $agent_id ),
-			'agentPhoto'   => (string) get_the_post_thumbnail_url( $agent_id, 'thumbnail' ),
-			'greeting'     => $greeting,
+			'agentName'    => HZB_Owner::name( $agent_id ),
+			'agentPhoto'   => HZB_Owner::photo( $agent_id ),
+			'greeting'     => HZB_Settings::t( $greeting ),
 			'chips'        => $chips,
 			'inline'       => (bool) $inline,
+			'placement'    => HZB_Settings::get( 'placement' ),
+			'selectors'    => array_values( array_filter( array_merge( array( HZB_Settings::get( 'placement_selector' ) ), (array) apply_filters( 'hzb_placement_selectors', array( '#sidebar', '.listing-sidebar', '.sidebar-wrap', '.property-sidebar', '#secondary', 'aside.sidebar', 'aside' ) ) ) ) ),
 		) );
 		return '<div id="hzb-root" class="hzb" hidden></div>';
 	}

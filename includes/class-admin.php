@@ -15,7 +15,9 @@ class HZB_Admin {
 	}
 
 	public static function meta_box() {
-		add_meta_box( 'hzb_calendar', 'Viewing calendar (Google)', array( __CLASS__, 'render_box' ), 'houzez_agent', 'side' );
+		foreach ( HZB_Owner::profile_types() as $type ) {
+			add_meta_box( 'hzb_calendar', 'Viewing calendar (Google)', array( __CLASS__, 'render_box' ), $type, 'side' );
+		}
 	}
 
 	public static function render_box( $post ) {
@@ -50,7 +52,7 @@ class HZB_Admin {
 		}
 		$action = sanitize_key( $_GET['hzb_action'] );
 		$agent  = (int) $_GET['agent'];
-		if ( ! in_array( $action, array( 'connect', 'disconnect' ), true ) || get_post_type( $agent ) !== 'houzez_agent' ) {
+		if ( ! in_array( $action, array( 'connect', 'disconnect' ), true ) || ! HZB_Owner::is_owner( $agent ) ) {
 			return;
 		}
 		check_admin_referer( 'hzb_' . $action . '_' . $agent );
@@ -90,6 +92,26 @@ class HZB_Admin {
 		foreach ( array( 'duration' => 'Viewing length (min)', 'buffer' => 'Buffer between viewings (min)', 'min_notice_hours' => 'Minimum notice (hours)', 'max_days_ahead' => 'Bookable days ahead', 'visible_days' => 'Days the chat offers at a time', 'max_active' => 'Max upcoming viewings per email / per IP', 'max_per_day' => 'Max chat bookings per agent per day', 'hold_minutes' => 'Slot hold while awaiting email confirmation (min)' ) as $k => $label ) {
 			echo '<tr><th>' . esc_html( $label ) . '</th><td><input type="number" class="small-text" name="' . esc_attr( $o ) . '[' . $k . ']" value="' . (int) $s[ $k ] . '"></td></tr>';
 		}
+		echo '</table><h2>Theme and placement</h2><table class="form-table">';
+		echo '<tr><th>Detected theme</th><td><code>' . esc_html( HZB_Listings::family() ) . '</code> <span class="description">Houzez is fully supported. Other themes use the listing author as the calendar owner.</span></td></tr>';
+		echo '<tr><th>Listing post types</th><td>';
+		foreach ( get_post_types( array( 'public' => true ), 'objects' ) as $pt ) {
+			if ( in_array( $pt->name, array( 'attachment', 'page', 'post' ), true ) ) {
+				continue;
+			}
+			$on = $s['listing_types'] ? in_array( $pt->name, $s['listing_types'], true ) : in_array( $pt->name, HZB_Listings::types(), true );
+			echo '<label style="margin-right:12px"><input type="checkbox" name="' . esc_attr( $o ) . '[listing_types][]" value="' . esc_attr( $pt->name ) . '"' . checked( $on, true, false ) . '> ' . esc_html( $pt->label ) . ' <code>' . esc_html( $pt->name ) . '</code></label>';
+		}
+		echo '<p class="description">Tick none to auto-detect from the theme.</p></td></tr>';
+		echo '<tr><th>Placement</th><td><select name="' . esc_attr( $o ) . '[placement]">';
+		foreach ( array( 'auto' => 'Auto: inside the theme sidebar, else under the content', 'float' => 'Floating card, bottom right', 'shortcode' => 'Only where I place the shortcode' ) as $v => $l ) {
+			echo '<option value="' . esc_attr( $v ) . '"' . selected( $s['placement'], $v, false ) . '>' . esc_html( $l ) . '</option>';
+		}
+		echo '</select><p class="description">Shortcode: <code>[viewing_booking]</code></p></td></tr>';
+		echo '<tr><th>Placement CSS selector</th><td><input class="regular-text" name="' . esc_attr( $o ) . '[placement_selector]" value="' . esc_attr( $s['placement_selector'] ) . '" placeholder="e.g. .listing-sidebar"><p class="description">Optional: put the card at the top of this element.</p></td></tr>';
+		echo '<tr><th>Word for a booking</th><td><input class="regular-text" name="' . esc_attr( $o ) . '[noun]" value="' . esc_attr( $s['noun'] ) . '"><p class="description">viewing, tour, appointment, visit... used in chat and emails.</p></td></tr>';
+		echo '<tr><th>Dashboard menu selector</th><td><input class="regular-text" name="' . esc_attr( $o ) . '[menu_selector]" value="' . esc_attr( $s['menu_selector'] ) . '" placeholder="e.g. #dashboard ul"><p class="description">Optional: CSS selector of the theme user-dashboard menu list, to add a "Viewing Calendar" link. Connect page: <a href="' . esc_url( HZB_Dashboard::page_url() ) . '">' . esc_html( HZB_Dashboard::page_url() ) . '</a></p></td></tr>';
+		echo '<tr><th>Custom agent post type</th><td><input class="regular-text" name="' . esc_attr( $o ) . '[agent_post_type]" value="' . esc_attr( $s['agent_post_type'] ) . '"> <input class="regular-text" name="' . esc_attr( $o ) . '[agent_meta_key]" value="' . esc_attr( $s['agent_meta_key'] ) . '" placeholder="listing meta key holding the agent ID"><p class="description">Advanced: for a theme whose agents are a post type we do not know.</p></td></tr>';
 		echo '</table>';
 		submit_button();
 		echo '</form></div>';

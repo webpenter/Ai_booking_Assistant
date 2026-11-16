@@ -122,7 +122,7 @@ class HZB_Booking_Service {
 		$ev       = HZB_Calendar::insert_event( $agent_id, array(
 			'summary'        => 'Property viewing: ' . get_the_title( $b->listing_id ) . ( $b->is_virtual ? ' (virtual)' : '' ),
 			'description'    => self::description( $b->listing_id, $b->buyer_name, $b->buyer_email, (bool) $b->is_virtual ),
-			'location'       => $b->is_virtual ? '' : (string) get_post_meta( $b->listing_id, 'fave_property_address', true ),
+			'location'       => $b->is_virtual ? '' : HZB_Listings::address( $b->listing_id ),
 			'start'          => strtotime( $b->start_utc . ' UTC' ),
 			'end'            => strtotime( $b->end_utc . ' UTC' ),
 			'tz'             => HZB_Calendar::timezone( $agent_id )->getName(),
@@ -167,7 +167,7 @@ class HZB_Booking_Service {
 	}
 
 	private static function description( $listing_id, $name, $email, $virtual ) {
-		return "Viewing requested through the website chat (buyer email confirmed).\n\nProperty: " . get_the_title( $listing_id ) . "\nAddress: " . get_post_meta( $listing_id, 'fave_property_address', true )
+		return "Viewing requested through the website chat (buyer email confirmed).\n\nProperty: " . get_the_title( $listing_id ) . "\nAddress: " . HZB_Listings::address( $listing_id )
 			. "\nListing: " . get_permalink( $listing_id ) . "\nBuyer: $name <$email>\nType: " . ( $virtual ? 'Virtual (Google Meet)' : 'In person' );
 	}
 
@@ -204,22 +204,16 @@ class HZB_Booking_Service {
 				$lines[] = 'Need to change or cancel? ' . add_query_arg( 'hzb_booking', $booking->token, get_permalink( $booking->listing_id ) );
 			}
 		}
-		wp_mail( $booking->buyer_email, $subject[ $kind ] . ': ' . get_the_title( $booking->listing_id ), implode( "\n", $lines ) );
+		wp_mail( $booking->buyer_email, HZB_Settings::t( $subject[ $kind ] . ': ' . get_the_title( $booking->listing_id ) ), HZB_Settings::t( implode( "\n", $lines ) ) );
 	}
 
 	/** To the agent, so they hear about changes even if they never open the calendar. */
 	public static function email_agent( $booking, $kind ) {
 		$agent_id = (int) $booking->agent_id;
-		$to       = get_post_meta( $agent_id, 'fave_agent_email', true );
-		if ( ! is_email( $to ) ) {
-			$to = get_post_meta( $agent_id, HZB_Google_OAuth::META_EMAIL, true );
-		}
-		if ( ! is_email( $to ) ) {
-			$to = get_option( 'admin_email' );
-		}
+		$to       = HZB_Owner::email( $agent_id );
 		$label = array( 'booked' => 'New viewing booked', 'rescheduled' => 'Viewing rescheduled', 'cancelled' => 'Viewing cancelled' );
 		$tz    = HZB_Calendar::timezone( $agent_id );
 		$body  = $label[ $kind ] . "\n\nProperty: " . get_the_title( $booking->listing_id ) . "\nWhen: " . HZB_Chat::format_ts( strtotime( $booking->start_utc . ' UTC' ), $tz ) . ' (' . $tz->getName() . ")\nBuyer: " . $booking->buyer_name . ' <' . $booking->buyer_email . ">\nType: " . ( $booking->is_virtual ? 'Virtual (Google Meet)' : 'In person' ) . "\nListing: " . get_permalink( $booking->listing_id );
-		wp_mail( $to, $label[ $kind ] . ': ' . get_the_title( $booking->listing_id ), $body );
+		wp_mail( $to, HZB_Settings::t( $label[ $kind ] . ': ' . get_the_title( $booking->listing_id ) ), HZB_Settings::t( $body ) );
 	}
 }
