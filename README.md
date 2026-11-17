@@ -8,9 +8,7 @@ Works with **Houzez, WPResidence, RealHomes, Listeo, Homey** and any custom list
 
 ## Demo
 
-<video src="https://github.com/webpenter/Ai_booking_Assistant/raw/main/docs/demo.mp4" controls muted width="100%"></video>
-
-A visitor chats, picks a free slot from the agent's Google Calendar, and books a viewing. If the player doesn't load, [download the video](docs/demo.mp4).
+https://github.com/user-attachments/assets/297f40f2-95b5-4547-b832-9ea2af205cd7
 
 ## Features
 
